@@ -11,6 +11,9 @@ param curseForgeApiKey string
 param storageAccountName string = substring('pixelmondata${uniqueString(resourceGroup().id)}', 0, 24)
 param fileShareName string = 'minecraft-data'
 
+param logAnalyticsWorkspaceName string = 'pixelmon-logs-${uniqueString(resourceGroup().id)}'
+param logRetentionInDays int = 30
+
 // Storage Account for persistent storage
 resource storageAccount 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   name: storageAccountName
@@ -34,6 +37,18 @@ resource fileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-0
   name: fileShareName
   properties: {
     shareQuota: 100
+  }
+}
+
+// Log Analytics Workspace for container logs
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+  name: logAnalyticsWorkspaceName
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: logRetentionInDays
   }
 }
 
@@ -91,8 +106,37 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
         }
       }
     ]
+    diagnostics: {
+      logAnalytics: {
+        workspaceId: logAnalyticsWorkspace.properties.customerId
+        workspaceKey: logAnalyticsWorkspace.listKeys().primarySharedKey
+        logType: 'ContainerInsights'
+      }
+    }
+  }
+}
+
+// Diagnostic settings for container group
+resource containerDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${containerGroupName}-diagnostics'
+  scope: containerGroup
+  properties: {
+    workspaceId: logAnalyticsWorkspace.id
+    logs: [
+      {
+        category: 'ContainerInstanceLog'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
   }
 }
 
 output containerGroupFQDN string = containerGroup.properties.ipAddress.fqdn
 output containerGroupIP string = containerGroup.properties.ipAddress.ip
+output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
