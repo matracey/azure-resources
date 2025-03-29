@@ -1,6 +1,10 @@
 param location string = resourceGroup().location
 
 // Container Group Parameters
+@description('The number of CPU cores to allocate to the container group.')
+param cpuCores int = 2
+@description('The amount of memory (in GB) to allocate to the container group.')
+param memoryInGB int = 6
 @description('The name of the container group.')
 param containerGroupName string = 'pixelmon-server'
 
@@ -58,7 +62,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
           ]
           environmentVariables: [
             { name: 'EULA', value: 'TRUE' }
-            { name: 'MAX_MEMORY', value: '3G' }
+            { name: 'MAX_MEMORY', value: '${memoryInGB - 1}G' }
             { name: 'TYPE', value: 'AUTO_CURSEFORGE' }
             { name: 'ALLOW_FLIGHT', value: 'true' }
             { name: 'CF_FORCE_SYNCHRONIZE', value: 'true' }
@@ -67,7 +71,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
             { name: 'CF_API_KEY', secureValue: curseForgeApiKey }
           ]
           resources: {
-            requests: { cpu: 8, memoryInGB: 4 }
+            requests: { cpu: cpuCores, memoryInGB: memoryInGB }
           }
           volumeMounts: [
             { name: 'pixelmon-datavolume', mountPath: '/data' }
