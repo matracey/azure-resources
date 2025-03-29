@@ -1,4 +1,8 @@
 param location string = resourceGroup().location
+@description('The number of CPU cores to allocate to the container group.')
+param cpuCores int = 4
+@description('The amount of memory (in GB) to allocate to the container group.')
+param memoryInGB int = 5
 param containerGroupName string = 'pixelmon-server'
 @description('API key for CurseForge to download the modpack')
 @secure()
@@ -51,7 +55,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
           ]
           environmentVariables: [
             { name: 'EULA', value: 'TRUE' }
-            { name: 'MAX_MEMORY', value: '3G' }
+            { name: 'MAX_MEMORY', value: '${memoryInGB - 1}G' }
             { name: 'TYPE', value: 'AUTO_CURSEFORGE' }
             { name: 'ALLOW_FLIGHT', value: 'true' }
             { name: 'CF_FORCE_SYNCHRONIZE', value: 'true' }
@@ -60,7 +64,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
             { name: 'CF_API_KEY', secureValue: curseForgeApiKey }
           ]
           resources: {
-            requests: { cpu: 8, memoryInGB: 4 }
+            requests: { cpu: cpuCores, memoryInGB: memoryInGB }
           }
           volumeMounts: [
             { name: 'datavolume', mountPath: '/data' }
