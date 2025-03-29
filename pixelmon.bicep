@@ -4,6 +4,8 @@ param cpuCores int = 4
 @description('The amount of memory (in GB) to allocate to the container group.')
 param memoryInGB int = 5
 param containerGroupName string = 'pixelmon-server'
+@description('The version of the Minecraft server image to use. For example, "java8" or "java11". See https://docker-minecraft-server.readthedocs.io/en/latest/versions/java/ for more details.')
+param imageVersion string = 'java8-multiarch'
 @description('API key for CurseForge to download the modpack')
 @secure()
 param curseForgeApiKey string
@@ -64,7 +66,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
       {
         name: 'pixelmon'
         properties: {
-          image: 'itzg/minecraft-server'
+          image: 'itzg/minecraft-server:${imageVersion}'
           ports: [
             { port: 25565, protocol: 'TCP' }
           ]
