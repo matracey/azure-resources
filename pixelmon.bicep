@@ -22,6 +22,8 @@ param fileShareName string = 'minecraft-data'
 param imageVersion string = 'java8-multiarch'
 @description('The version of the Pixelmon modpack to use.')
 param pixelmonModpackVersion string = ''
+@description('The name of the Minecraft server.')
+param serverName string = 'My Pixelmon Server'
 @description('API key for CurseForge to download the modpack')
 @secure()
 param curseForgeApiKey string
@@ -84,6 +86,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
             { name: 'EULA', value: 'TRUE' }
             { name: 'MAX_MEMORY', value: '${memoryInGB - 1}G' }
             { name: 'TYPE', value: 'AUTO_CURSEFORGE' }
+            { name: 'SERVER_NAME', value: serverName }
             { name: 'ALLOW_FLIGHT', value: 'true' }
             { name: 'CF_FORCE_SYNCHRONIZE', value: 'true' }
             { name: 'CF_FORCE_INCLUDE_MODS', value: 'pixelmon,fancymenu' }
