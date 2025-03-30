@@ -20,6 +20,8 @@ param logRetentionInDays int = 30
 param fileShareName string = 'minecraft-data'
 @description('The version of the Minecraft server image to use. For example, "java8" or "java11". See https://docker-minecraft-server.readthedocs.io/en/latest/versions/java/ for more details.')
 param imageVersion string = 'java8-multiarch'
+@description('The version of the Pixelmon modpack to use.')
+param pixelmonModpackVersion string = ''
 @description('API key for CurseForge to download the modpack')
 @secure()
 param curseForgeApiKey string
@@ -86,6 +88,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
             { name: 'CF_FORCE_SYNCHRONIZE', value: 'true' }
             { name: 'CF_FORCE_INCLUDE_MODS', value: 'pixelmon,fancymenu' }
             { name: 'CF_SLUG', value: 'the-pixelmon-modpack' }
+            { name: 'CF_FILENAME_MATCHER', value: pixelmonModpackVersion }
             { name: 'CF_API_KEY', secureValue: curseForgeApiKey }
           ]
           resources: {
