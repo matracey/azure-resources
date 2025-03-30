@@ -24,9 +24,16 @@ param imageVersion string = 'java8-multiarch'
 param pixelmonModpackVersion string = ''
 @description('The name of the Minecraft server.')
 param serverName string = 'My Pixelmon Server'
+@description('An array of white-listed UUIDs for non-op players.')
+param whitelist array = []
+@description('An array of operator UUIDs for players.')
+param ops array = []
 @description('API key for CurseForge to download the modpack')
 @secure()
 param curseForgeApiKey string
+
+@description('The full white-list of UUIDs for players. This includes both the white-listed and operator UUIDs.')
+var fullWhitelist = union(whitelist, ops)
 
 // Storage Account for persistent storage
 resource storageAccount 'Microsoft.Storage/storageAccounts@2024-01-01' = {
@@ -87,6 +94,8 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
             { name: 'MAX_MEMORY', value: '${memoryInGB - 1}G' }
             { name: 'TYPE', value: 'AUTO_CURSEFORGE' }
             { name: 'SERVER_NAME', value: serverName }
+            { name: 'WHITELIST', value: join(fullWhitelist, ',') }
+            { name: 'OPS', value: join(ops, ',') }
             { name: 'ALLOW_FLIGHT', value: 'true' }
             { name: 'CF_FORCE_SYNCHRONIZE', value: 'true' }
             { name: 'CF_FORCE_INCLUDE_MODS', value: 'pixelmon,fancymenu' }
