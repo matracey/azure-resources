@@ -28,6 +28,8 @@ param serverName string = 'My Pixelmon Server'
 param whitelist array = []
 @description('An array of operator UUIDs for players.')
 param ops array = []
+@description('Additional mods to include beyond the default Pixelmon modpack.')
+param additionalMods array = []
 @description('API key for CurseForge to download the modpack')
 @secure()
 param curseForgeApiKey string
@@ -99,6 +101,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
             { name: 'ALLOW_FLIGHT', value: 'true' }
             { name: 'CF_FORCE_SYNCHRONIZE', value: 'true' }
             { name: 'CF_FORCE_INCLUDE_MODS', value: 'pixelmon,fancymenu' }
+            { name: 'CURSEFORGE_FILES', value: join(additionalMods, ',') }
             { name: 'CF_SLUG', value: 'the-pixelmon-modpack' }
             { name: 'CF_FILENAME_MATCHER', value: pixelmonModpackVersion }
             { name: 'CF_API_KEY', secureValue: curseForgeApiKey }
