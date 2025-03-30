@@ -7,6 +7,8 @@ param cpuCores int = 2
 param memoryInGB int = 6
 @description('The name of the container group.')
 param containerGroupName string = 'pixelmon-server'
+@description('Should the container group be deployed as a spot instance? Spot instances are cheaper but can be evicted at any time.')
+param spotInstance bool = true
 
 // Storage Parameters
 param storageAccountName string = substring('pixelmondata${uniqueString(resourceGroup().id)}', 0, 24)
@@ -116,6 +118,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
       }
     ]
     osType: 'Linux'
+    priority: spotInstance ? 'Spot' : 'Regular'
     restartPolicy: 'Always'
     ipAddress: {
       type: 'Public'
