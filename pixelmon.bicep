@@ -14,6 +14,8 @@ param spotInstance bool = true
 param storageAccountName string = substring('pixelmondata${uniqueString(resourceGroup().id)}', 0, 24)
 
 // Logging Parameters
+@description('If true, enables debug mode by deploying a log analytics workspace and setting up diagnostics.')
+param enableLogAnalytics bool = false
 param logAnalyticsWorkspaceName string = 'gaming-container-logs-${uniqueString(resourceGroup().id)}'
 param logRetentionInDays int = 30
 
@@ -66,7 +68,7 @@ resource fileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2024-0
 }
 
 // Log Analytics Workspace for container logs
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02-01' = if (enableLogAnalytics) {
   name: logAnalyticsWorkspaceName
   location: location
   properties: {
@@ -137,13 +139,15 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
         }
       }
     ]
-    diagnostics: {
-      logAnalytics: {
-        workspaceId: logAnalyticsWorkspace.properties.customerId
-        workspaceKey: logAnalyticsWorkspace.listKeys().primarySharedKey
-        logType: 'ContainerInsights'
-      }
-    }
+    diagnostics: enableLogAnalytics
+      ? {
+          logAnalytics: {
+            workspaceId: logAnalyticsWorkspace.properties.customerId
+            workspaceKey: logAnalyticsWorkspace.listKeys().primarySharedKey
+            logType: 'ContainerInsights'
+          }
+        }
+      : null
   }
   dependsOn: [
     fileShare
@@ -151,7 +155,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
 }
 
 // Diagnostic settings for container group
-resource containerDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+resource containerDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableLogAnalytics) {
   name: '${containerGroupName}-diagnostics'
   scope: containerGroup
   properties: {
@@ -175,4 +179,4 @@ resource containerDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-
 
 output containerGroupFQDN string = containerGroup.properties.ipAddress.fqdn
 output containerGroupIP string = containerGroup.properties.ipAddress.ip
-output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
+output logAnalyticsWorkspaceId string = enableLogAnalytics ? logAnalyticsWorkspace.id : 'Log Analytics not enabled'
