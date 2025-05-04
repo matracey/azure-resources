@@ -9,6 +9,11 @@ param memoryInGB int = 6
 param containerGroupName string = 'gaming-container'
 @description('Should the container group be deployed as a spot instance? Spot instances are cheaper but can be evicted at any time.')
 param spotInstance bool = true
+@description('The Docker Hub username for pulling images.')
+param dockerHubUsername string
+@description('The Docker Hub personal access token for pulling images.')
+@secure()
+param dockerHubPersonalAccessToken string
 
 // Storage Parameters
 param storageAccountName string = substring('gamingcontainerdata${uniqueString(resourceGroup().id)}', 0, 24)
@@ -129,6 +134,13 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
     ]
     osType: 'Linux'
     priority: spotInstance ? 'Spot' : 'Regular'
+    imageRegistryCredentials: [
+      {
+        server: 'index.docker.io'
+        username: dockerHubUsername
+        password: dockerHubPersonalAccessToken
+      }
+    ]
     restartPolicy: 'Always'
     ipAddress: {
       type: 'Public'
