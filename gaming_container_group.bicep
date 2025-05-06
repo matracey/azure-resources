@@ -43,9 +43,24 @@ param pixelmonAdditionalMods array = []
 @secure()
 param curseForgeApiKey string
 
+// Terraria Specific Parameters
+@description('The name of the file share for the Terraria container data.')
+param terrariaFileShareName string = 'terraria-data'
+@description('The version of the Terraria server image to use.')
+param terrariaImageVersion string = 'latest'
+@description('The version of TShock to use.')
+param terrariaTShockVersion string = 'v5.2.2'
+@description('The path to the Terraria log directory.')
+param terrariaLogDirPath string = '/tshock/logs'
+@description('The path to the Terraria configuration directory.')
+param terrariaConfigDirPath string = '/root/.local/share/Terraria/Worlds'
+@description('The name of the world file.')
+param terrariaWorldFileName string = 'world.wld'
+
 @description('An array of file share names to create within the storage account.')
 var fileShareNames = [
   pixelmonFileShareName
+  terrariaFileShareName
 ]
 @description('The full white-list of UUIDs for players. This includes both the white-listed and operator UUIDs.')
 var fullPixelmonWhitelist = union(pixelmonWhitelist, pixelmonOps)
@@ -131,6 +146,33 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
           ]
         }
       }
+      {
+        name: 'terraria'
+        properties: {
+          image: 'ryshe/terraria:${terrariaImageVersion}'
+          ports: [
+            { port: 7777, protocol: 'TCP' }
+          ]
+          environmentVariables: [
+            { name: 'TSHOCKVERSION', value: terrariaTShockVersion }
+            { name: 'LOGPATH', value: terrariaLogDirPath }
+            { name: 'CONFIGPATH', value: terrariaConfigDirPath }
+            { name: 'WORLD_FILENAME', value: terrariaWorldFileName }
+          ]
+          command: [
+            '/bin/sh'
+            'bootstrap.sh'
+            '-autocreate'
+          ]
+          resources: {
+            // Assuming Terraria needs similar resources, adjust if needed
+            requests: { cpu: cpuCores, memoryInGB: memoryInGB }
+          }
+          volumeMounts: [
+            { name: 'terraria-datavolume', mountPath: '/root/.local/share/Terraria' } // Mount path for Terraria world data
+          ]
+        }
+      }
     ]
     osType: 'Linux'
     priority: spotInstance ? 'Spot' : 'Regular'
@@ -146,6 +188,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
       type: 'Public'
       ports: [
         { port: 25565, protocol: 'TCP' } // Pixelmon port
+        { port: 7777, protocol: 'TCP' } // Terraria port
       ]
       dnsNameLabel: toLower(containerGroupName)
     }
@@ -155,6 +198,15 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
         azureFile: {
           readOnly: false
           shareName: pixelmonFileShareName
+          storageAccountName: storageAccount.name
+          storageAccountKey: storageAccountKey
+        }
+      }
+      {
+        name: 'terraria-datavolume'
+        azureFile: {
+          readOnly: false
+          shareName: terrariaFileShareName
           storageAccountName: storageAccount.name
           storageAccountKey: storageAccountKey
         }
