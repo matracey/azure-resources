@@ -170,6 +170,7 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
           }
           volumeMounts: [
             { name: 'terraria-datavolume', mountPath: '/root/.local/share/Terraria' } // Mount path for Terraria world data
+            { name: 'terraria-pluginvolume', mountPath: '/plugins' } // Mount path for Terraria plugins
           ]
         }
       }
@@ -204,6 +205,15 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
       }
       {
         name: 'terraria-datavolume'
+        azureFile: {
+          readOnly: false
+          shareName: terrariaFileShareName
+          storageAccountName: storageAccount.name
+          storageAccountKey: storageAccountKey
+        }
+      }
+      {
+        name: 'terraria-pluginvolume'
         azureFile: {
           readOnly: false
           shareName: terrariaFileShareName
