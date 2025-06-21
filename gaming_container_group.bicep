@@ -57,10 +57,14 @@ param terrariaConfigDirPath string = '/root/.local/share/Terraria/Worlds'
 @description('The name of the world file.')
 param terrariaWorldFileName string = 'world.wld'
 
+@description('The name of the file share for Traefik configuration.')
+var traefikFileShareName = 'traefik-config'
+
 @description('An array of file share names to create within the storage account.')
 var fileShareNames = [
   pixelmonFileShareName
   terrariaFileShareName
+  traefikFileShareName
 ]
 @description('The full white-list of UUIDs for players. This includes both the white-listed and operator UUIDs.')
 var fullPixelmonWhitelist = union(pixelmonWhitelist, pixelmonOps)
@@ -174,6 +178,32 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
           ]
         }
       }
+      {
+        name: 'traefik'
+        properties: {
+          image: 'traefik:v2.10'
+          ports: [
+            { port: 80, protocol: 'TCP' } // HTTP port for dashboard
+            { port: 443, protocol: 'TCP' }
+            { port: 25565, protocol: 'TCP' }
+            { port: 7777, protocol: 'TCP' }
+          ]
+          environmentVariables: [
+            { name: 'TRAEFIK_LOG_LEVEL', value: 'DEBUG' }
+            { name: 'TRAEFIK_PROVIDERS_FILE_FILENAME', value: '/config/dynamic.toml' }
+            { name: 'TRAEFIK_ENTRYPOINTS_HTTP_ADDRESS', value: ':80' }
+            { name: 'TRAEFIK_ENTRYPOINTS_HTTPS_ADDRESS', value: ':443' }
+            { name: 'TRAEFIK_ENTRYPOINTS_MINECRAFT_ADDRESS', value: ':25565' }
+            { name: 'TRAEFIK_ENTRYPOINTS_TERRARIA_ADDRESS', value: ':7777' }
+          ]
+          resources: {
+            requests: { cpu: 1, memoryInGB: 1 }
+          }
+          volumeMounts: [
+            { name: 'traefik-config-volume', mountPath: '/config' }
+          ]
+        }
+      }
     ]
     osType: 'Linux'
     priority: spotInstance ? 'Spot' : 'Regular'
@@ -188,6 +218,8 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
     ipAddress: {
       type: 'Public'
       ports: [
+        { port: 80, protocol: 'TCP' }
+        { port: 443, protocol: 'TCP' }
         { port: 25565, protocol: 'TCP' } // Pixelmon port
         { port: 7777, protocol: 'TCP' } // Terraria port
       ]
@@ -217,6 +249,15 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
         azureFile: {
           readOnly: false
           shareName: terrariaFileShareName
+          storageAccountName: storageAccount.name
+          storageAccountKey: storageAccountKey
+        }
+      }
+      {
+        name: 'traefik-config-volume'
+        azureFile: {
+          readOnly: false
+          shareName: traefikFileShareName
           storageAccountName: storageAccount.name
           storageAccountKey: storageAccountKey
         }

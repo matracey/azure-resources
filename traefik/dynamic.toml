@@ -1,0 +1,4 @@
+[http]
+  [http.routers]
+    [http.routers.dashboard]
+      rule = "Host(`traefik`)"
