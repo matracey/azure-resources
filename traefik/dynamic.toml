@@ -1,3 +1,15 @@
+[tcp]
+  [tcp.routers]
+    [tcp.routers.pixelmon]
+      rule = "HostSNI(`pixelmon`)"
+      service = "pixelmon-service"
+      entryPoints = ["minecraft"]
+
+  [tcp.services]
+    [tcp.services.pixelmon-service.loadBalancer]
+      [[tcp.services.pixelmon-service.loadBalancer.servers]]
+        address = "localhost:25565"
+
 [http]
   [http.routers]
     [http.routers.dashboard]
