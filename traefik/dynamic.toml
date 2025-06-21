@@ -5,10 +5,19 @@
       service = "pixelmon-service"
       entryPoints = ["minecraft"]
 
+    [tcp.routers.terraria]
+      rule = "HostSNI(`terraria`)"
+      service = "terraria-service"
+      entryPoints = ["terraria"]
+
   [tcp.services]
     [tcp.services.pixelmon-service.loadBalancer]
       [[tcp.services.pixelmon-service.loadBalancer.servers]]
         address = "localhost:25565"
+
+    [tcp.services.terraria-service.loadBalancer]
+      [[tcp.services.terraria-service.loadBalancer.servers]]
+        address = "localhost:7777"
 
 [http]
   [http.routers]
