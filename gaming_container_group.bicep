@@ -111,6 +111,11 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02
   }
 }
 
+var minecraftEntryPointPort = 25565
+var pixelmonLoadBalancerPort = 32003
+var terrariaEntryPointPort = 7777
+var terrariaLoadBalancerPort = 20479
+
 // Get storage account key for mounting the file share
 var storageAccountKey = storageAccount.listKeys().keys[0].value
 
