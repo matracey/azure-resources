@@ -13,11 +13,17 @@
   [tcp.services]
     [tcp.services.pixelmon-service.loadBalancer]
       [[tcp.services.pixelmon-service.loadBalancer.servers]]
-        address = "localhost:25565"
+        address = "localhost:32003"
 
     [tcp.services.terraria-service.loadBalancer]
       [[tcp.services.terraria-service.loadBalancer.servers]]
-        address = "localhost:7777"
+        address = "localhost:20479"
+
+[entryPoints]
+  [entryPoints.minecraft]
+    address = ":25565"
+  [entryPoints.terraria]
+    address = ":7777"
 
 [http]
   [http.routers]
