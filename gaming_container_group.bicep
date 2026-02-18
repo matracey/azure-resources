@@ -130,13 +130,14 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
         properties: {
           image: 'itzg/minecraft-server:${pixelmonImageVersion}'
           ports: [
-            { port: 25565, protocol: 'TCP' }
+            { port: pixelmonLoadBalancerPort, protocol: 'TCP' }
           ]
           environmentVariables: [
             { name: 'EULA', value: 'TRUE' }
             { name: 'MAX_MEMORY', value: '${memoryInGB - 1}G' }
             { name: 'TYPE', value: 'AUTO_CURSEFORGE' }
             { name: 'SERVER_NAME', value: pixelmonServerName }
+            { name: 'SERVER_PORT', value: pixelmonLoadBalancerPort }
             { name: 'WHITELIST', value: join(fullPixelmonWhitelist, ',') }
             { name: 'OPS', value: join(pixelmonOps, ',') }
             { name: 'ALLOW_FLIGHT', value: 'true' }
