@@ -60,3 +60,53 @@ Deploys an Azure Container Instance group running a **Pixelmon** (Minecraft) ser
 | `containerGroupFQDN` | Fully qualified domain name of the container group |
 | `containerGroupIP` | Public IP address of the container group |
 | `logAnalyticsWorkspaceId` | Log Analytics workspace resource ID (or message if disabled) |
+
+### GitHub Actions Runner Job (`github_actions_runner_job.bicep`)
+
+Deploys an event-driven, self-hosted **GitHub Actions runner** on Azure Container Apps. The runner automatically scales based on queued workflow jobs using a KEDA `github-runner` scale rule, pulling a custom runner image from a private Azure Container Registry.
+
+#### Resources Created
+
+| Resource | Description |
+|---|---|
+| **Container Apps Environment** | Managed environment for running the Container Apps job |
+| **Azure Container Registry** | `Basic` SKU registry for storing the custom runner image |
+| **User-Assigned Managed Identity** | Identity with `AcrPull` role for pulling images from ACR |
+| **AcrPull Role Assignment** | Grants the managed identity pull access to the container registry |
+| **Container Apps Job** | Event-triggered job that spins up runner replicas in response to queued GitHub Actions workflows |
+| **Log Analytics Workspace** | *(Optional)* Deployed when `enableLogAnalytics` is `true` |
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `location` | `string` | Resource group location | Deployment region |
+| `environmentName` | `string` | `env-github-runners` | Container Apps environment name |
+| `containerRegistryName` | `string` | Auto-generated | Azure Container Registry name (globally unique) |
+| `identityName` | `string` | `github-runner-identity` | Managed identity name for ACR pull |
+| `jobName` | `string` | `github-actions-runner-job` | Container Apps job name |
+| `containerImageName` | `string` | `github-actions-runner:1.0` | Runner container image name and tag |
+| `cpuCores` | `string` | `2.0` | CPU cores allocated to the runner |
+| `memory` | `string` | `4Gi` | Memory allocated to the runner |
+| `githubPat` | `string` (secure) | — | GitHub PAT for runner registration and scale rule auth |
+| `repoOwner` | `string` | — | GitHub repository owner (user or org) |
+| `repoName` | `string` | — | GitHub repository name |
+| `registrationTokenApiUrl` | `string` | Auto-generated | Runner registration token API URL |
+| `githubApiUrl` | `string` | `https://api.github.com` | GitHub API URL (update for GitHub Enterprise) |
+| `minExecutions` | `int` | `0` | Minimum job executions per polling interval |
+| `maxExecutions` | `int` | `10` | Maximum job executions per polling interval |
+| `pollingInterval` | `int` | `30` | Scale rule polling interval in seconds |
+| `replicaTimeout` | `int` | `1800` | Maximum replica execution duration in seconds |
+| `enableLogAnalytics` | `bool` | `false` | Enable Log Analytics for the environment |
+| `logAnalyticsWorkspaceName` | `string` | Auto-generated | Log Analytics workspace name |
+| `logRetentionInDays` | `int` | `30` | Log retention period in days |
+
+#### Outputs
+
+| Output | Description |
+|---|---|
+| `environmentId` | Container Apps environment resource ID |
+| `containerRegistryLoginServer` | ACR login server hostname |
+| `managedIdentityId` | Managed identity resource ID |
+| `jobName` | Container Apps job name |
+| `logAnalyticsWorkspaceId` | Log Analytics workspace resource ID (or message if disabled) |
