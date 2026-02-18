@@ -1,2 +1,6 @@
 *.local.parameters.json
 *.local.bicepparam
+
+# Compiled ARM templates from Bicep
+*.json
+!*.parameters.json
