@@ -4,23 +4,24 @@ param location string = resourceGroup().location
 @description('The name of the Container Apps environment.')
 param environmentName string = 'env-github-runners'
 
-// Container Registry Parameters
-@description('The name of the Azure Container Registry. Must be globally unique, 5-50 characters, lowercase letters and numbers only.')
-param containerRegistryName string = toLower('ghrunners${uniqueString(resourceGroup().id)}')
-
-// Managed Identity Parameters
-@description('The name of the user-assigned managed identity for pulling images from ACR.')
-param identityName string = 'github-runner-identity'
+// Container Image Parameters
+@description('The container registry server (e.g., ghcr.io, myregistry.azurecr.io).')
+param containerRegistryServer string = 'ghcr.io'
+@description('The full container image name and tag for the GitHub Actions runner (e.g., myorg/github-actions-runner:1.0).')
+param containerImageName string
+@description('The username for the container registry. Leave empty for registries that use token-based auth.')
+param containerRegistryUsername string = ''
+@description('The password or token for the container registry. Leave empty for public images.')
+@secure()
+param containerRegistryPassword string = ''
 
 // Runner Job Parameters
 @description('The name of the Container Apps job for the GitHub Actions runner.')
 param jobName string = 'github-actions-runner-job'
-@description('The container image name and tag for the GitHub Actions runner.')
-param containerImageName string = 'github-actions-runner:1.0'
 @description('The number of CPU cores to allocate to the runner.')
-param cpuCores string = '2.0'
+param cpuCores string = '0.5'
 @description('The amount of memory to allocate to the runner.')
-param memory string = '4Gi'
+param memory string = '1Gi'
 
 // GitHub Configuration
 @description('The GitHub personal access token used for runner registration and scale rule authentication.')
@@ -43,7 +44,7 @@ param maxExecutions int = 10
 @description('The polling interval in seconds at which to evaluate the scale rule.')
 param pollingInterval int = 30
 @description('The maximum duration in seconds a replica can execute.')
-param replicaTimeout int = 1800
+param replicaTimeout int = 600
 
 // Logging Parameters
 @description('If true, enables Log Analytics for the Container Apps environment.')
@@ -84,51 +85,30 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01'
     : {}
 }
 
-// --- Azure Container Registry ---
-
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
-  name: containerRegistryName
-  location: location
-  sku: {
-    name: 'Basic'
-  }
-  properties: {
-    adminUserEnabled: false
-  }
-}
-
-// --- User-Assigned Managed Identity ---
-
-resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: identityName
-  location: location
-}
-
-// AcrPull role assignment for the managed identity
-resource acrPullRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(containerRegistry.id, managedIdentity.id, '7f951dda-4ed3-4680-a7ca-43fe172d538d')
-  scope: containerRegistry
-  properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      '7f951dda-4ed3-4680-a7ca-43fe172d538d' // AcrPull built-in role
-    )
-    principalId: managedIdentity.properties.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
 // --- Container Apps Job (Event-Driven GitHub Actions Runner) ---
+
+var registryConfig = !empty(containerRegistryUsername) ? [
+  {
+    server: containerRegistryServer
+    username: containerRegistryUsername
+    passwordSecretRef: 'registry-password'
+  }
+] : [
+  {
+    server: containerRegistryServer
+  }
+]
+
+var registrySecret = !empty(containerRegistryPassword) ? [
+  {
+    name: 'registry-password'
+    value: containerRegistryPassword
+  }
+] : []
 
 resource githubRunnerJob 'Microsoft.App/jobs@2024-03-01' = {
   name: jobName
   location: location
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${managedIdentity.id}': {}
-    }
-  }
   properties: {
     environmentId: containerAppsEnvironment.id
     configuration: {
@@ -163,24 +143,19 @@ resource githubRunnerJob 'Microsoft.App/jobs@2024-03-01' = {
           ]
         }
       }
-      secrets: [
+      secrets: union([
         {
           name: 'personal-access-token'
           value: githubPat
         }
-      ]
-      registries: [
-        {
-          server: '${containerRegistryName}.azurecr.io'
-          identity: managedIdentity.id
-        }
-      ]
+      ], registrySecret)
+      registries: registryConfig
     }
     template: {
       containers: [
         {
           name: 'github-actions-runner'
-          image: '${containerRegistryName}.azurecr.io/${containerImageName}'
+          image: '${containerRegistryServer}/${containerImageName}'
           resources: {
             cpu: json(cpuCores)
             memory: memory
@@ -203,15 +178,10 @@ resource githubRunnerJob 'Microsoft.App/jobs@2024-03-01' = {
       ]
     }
   }
-  dependsOn: [
-    acrPullRoleAssignment
-  ]
 }
 
 // --- Outputs ---
 
 output environmentId string = containerAppsEnvironment.id
-output containerRegistryLoginServer string = containerRegistry.properties.loginServer
-output managedIdentityId string = managedIdentity.id
 output jobName string = githubRunnerJob.name
 output logAnalyticsWorkspaceId string = enableLogAnalytics ? logAnalyticsWorkspace.id : 'Log Analytics not enabled'
