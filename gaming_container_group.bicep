@@ -187,12 +187,12 @@ resource containerGroup 'Microsoft.ContainerInstance/containerGroups@2023-05-01'
       {
         name: 'traefik'
         properties: {
-          image: 'traefik:v2.10'
+          image: 'traefik:latest'
           ports: [
             { port: 80, protocol: 'TCP' } // HTTP port for dashboard
             { port: 443, protocol: 'TCP' }
-            { port: 25565, protocol: 'TCP' }
-            { port: 7777, protocol: 'TCP' }
+            { port: minecraftEntryPointPort, protocol: 'TCP' }
+            { port: terrariaEntryPointPort, protocol: 'TCP' }
           ]
           environmentVariables: [
             { name: 'TRAEFIK_LOG_LEVEL', value: 'DEBUG' }
